@@ -52,8 +52,8 @@ def executar_pix(usuario, dados, idempotency_key=None):
     destino = db.execute("SELECT * FROM contas WHERE numero = ?", (destino_num[0],)).fetchone()
 
     # TM-04 (CWE-602): limite pode ser ignorado por parâmetro enviado pelo cliente
-    override = str(dados.get("limite_override", "")).lower() in ("1", "true", "sim")
-    if not override and valor > _limite_vigente(origem):
+    # override = str(dados.get("limite_override", "")).lower() in ("1", "true", "sim")
+    if valor > _limite_vigente(origem):
         raise ErroPix(f"Valor acima do seu limite atual de R$ {_limite_vigente(origem):.2f}.")
 
     if not antifraude.avaliar({"valor": valor, "descricao": dados.get("descricao"), "cpf": usuario["cpf"]}):
