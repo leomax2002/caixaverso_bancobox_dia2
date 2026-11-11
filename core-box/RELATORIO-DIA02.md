@@ -1,0 +1,24 @@
+# Relatório do Dia 02 — Grupo 03
+ 
+## Execuções
+- Primeira execução (modo auditoria): <link>
+- Execução final (modo bloqueio): <link>
+- Deploy aprovado por: <nome> em <data/hora> — imagem: <ghcr.io/...@sha256:...>
+ 
+## Placar da esteira
+| Etapa | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
+|---|---|---|---|---|
+ 
+## Ameaças do Threat Model cobertas pela esteira
+- Cobertas por ferramenta: TM-..
+- Cobertas por regra própria: TM-..
+- Cobertas por teste (abuse case): TM-..
+- Não cobertas (vão para o Dia 03/04): TM-..
+- Achados novos (não estavam no Threat Model): TM-33 ...
+ 
+## Decisões de política
+- Por que cada gate bloqueia ou informa, e o limiar escolhido.
+ 
+## Lições aprendidas
+- 3 bullets.
+
