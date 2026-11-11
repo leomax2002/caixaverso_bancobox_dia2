@@ -12,7 +12,7 @@
 | 02 | 22 | 0 | 0 | 0 |
 | 03 | 10 | 0 | 0 | 0 |
 | 04 | 48 | 0 | 0 | 0 |
-| 05 | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
+| 05 | 1927 | 0 | 0 | 0 |
 | 06 | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
 | 07 | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
 | 08 | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
