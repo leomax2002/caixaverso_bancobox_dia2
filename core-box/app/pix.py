@@ -29,8 +29,7 @@ def _limite_vigente(conta, agora=None):
 def executar_pix(usuario, dados, idempotency_key=None):
     db = get_db()
     # TM-06: payload completo (com CPF e token) no log
-    log.info("Pix solicitado por cpf=%s dados=%s auth=%s", usuario["cpf"], dados,
-             request.headers.get("Authorization") or request.cookies.get("box_token"))
+    log.info("Pix solicitado por dados=%s ", dados)
 
     # TM-03 (CWE-639 / API1:2023 BOLA): conta de origem vem do cliente
     conta_origem = dados.get("conta_origem") or conta_do_usuario(usuario["id"])["numero"]
@@ -39,7 +38,10 @@ def executar_pix(usuario, dados, idempotency_key=None):
         raise ErroPix("Conta de origem inexistente.", 404)
 
     # TM-07: float() sem tratamento — valor inválido gera exceção com stack trace
-    valor = float(dados.get("valor"))
+    try:
+        valor = float(dados.get("valor"))
+    except:
+        raise ErroPix("Valor inválido.")
     if valor <= 0:
         raise ErroPix("Valor inválido.")
 
