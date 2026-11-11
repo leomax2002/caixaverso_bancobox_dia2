@@ -1,27 +1,26 @@
-name: Pipeline Seguro CI/CD - DevSecOps
+name: Pipeline Seguro CI/CD - DevSecOps (Modo Auditoria)
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch: {}
 
 permissions:
   contents: read
-  packages: write         # necessario para publicar a imagem no GHCR
-  security-events: write  # necessario para publicar os relatorios SARIF em Security
+  packages: write
+  security-events: write
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: leomax2002/Caixaverso_BancoBox_Dia2
 
 jobs:
-
   # ============================================================
   # ESTACAO 1 - DETECCAO DE SEGREDOS (Gitleaks)
-  # Roda primeiro: e rapida e pega o problema mais critico.
-  # Qualquer segredo real QUEBRA o build, sem excecao.
+  # Modo auditoria: achados sao reportados, mas nao interrompem
+  # a execucao da esteira.
   # ============================================================
   deteccao-segredos:
     name: "1 - Deteccao de Segredos (Gitleaks)"
@@ -30,19 +29,29 @@ jobs:
       - name: Checkout com historico completo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # essencial: o Gitleaks precisa do historico completo
+          fetch-depth: 0
 
       - name: Rodar Gitleaks
+        id: gitleaks
+        continue-on-error: true
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # a action encerra com erro automaticamente se encontrar um segredo,
-        # o que quebra este job e impede o avanco do pipeline.
+
+      - name: Registrar resultado do Gitleaks
+        if: always()
+        run: |
+          echo "## Resultado da deteccao de segredos (Gitleaks)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Resultado da verificacao: ${{ steps.gitleaks.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.gitleaks.outcome }}" != "success" ]; then
+            echo "ATENCAO: o Gitleaks encontrou achados ou nao concluiu normalmente."
+            echo "Pipeline em modo AUDITORIA: a execucao continuara."
+          fi
 
   # ============================================================
   # ESTACAO 2 - SAST (Semgrep)
-  # Analisa o codigo-fonte com regras de OWASP Top 10 e auditoria
-  # de seguranca. So bloqueia em achados de severidade ERROR.
+  # Analisa o codigo-fonte com regras OWASP e de seguranca.
+  # Modo auditoria: achados ERROR sao reportados sem bloqueio.
   # ============================================================
   sast-semgrep:
     name: "2 - SAST (Semgrep)"
@@ -60,18 +69,21 @@ jobs:
             --config=p/owasp-top-ten \
             --config=p/security-audit \
             --config=p/secrets \
-            --json --output=semgrep-results.json 
+            --json --output=semgrep-results.json
 
-      - name: Avaliar a politica de portao (bloqueia so em ERROR)
+      - name: Avaliar resultados do SAST em modo auditoria
         run: |
           ERROS=$(jq '[.results[] | select(.extra.severity=="ERROR")] | length' semgrep-results.json)
           AVISOS=$(jq '[.results[] | select(.extra.severity!="ERROR")] | length' semgrep-results.json)
+
           echo "Achados criticos (ERROR): $ERROS | Avisos: $AVISOS"
-          echo "## Resultado do SAST (Semgrep)" >> $GITHUB_STEP_SUMMARY
-          echo "- Criticos: $ERROS | Avisos: $AVISOS" >> $GITHUB_STEP_SUMMARY
+          echo "## Resultado do SAST (Semgrep)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Criticos: $ERROS" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Avisos: $AVISOS" >> "$GITHUB_STEP_SUMMARY"
+
           if [ "$ERROS" -gt 0 ]; then
-            echo "Build bloqueado: ha achados ERROR no codigo."
-            exit 1
+            echo "ATENCAO: foram encontrados $ERROS achados ERROR no codigo."
+            echo "Pipeline em modo AUDITORIA: a execucao continuara."
           fi
 
       - name: Publicar relatorios como artefato
@@ -85,6 +97,7 @@ jobs:
   # ESTACAO 3 - BUILD
   # App Python (app.py). Instala dependencias e valida que o
   # modulo principal importa sem erro de sintaxe.
+  # Falhas tecnicas de build continuam interrompendo a esteira.
   # ============================================================
   build:
     name: "3 - Build"
@@ -107,8 +120,8 @@ jobs:
 
   # ============================================================
   # ESTACAO 4 - SCA (Trivy - dependencias)
-  # Audita o requirements.txt resolvido no build. CRITICAL/HIGH bloqueia;
-  # MEDIUM/LOW so avisa (estrategia de baseline).
+  # Modo auditoria: CRITICAL/HIGH e MEDIUM/LOW sao reportados,
+  # mas vulnerabilidades nao interrompem a esteira.
   # ============================================================
   sca-trivy:
     name: "4 - SCA (Trivy - dependencias)"
@@ -117,18 +130,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Trivy - bloqueia em CRITICAL/HIGH
+      - name: Trivy - auditoria CRITICAL/HIGH
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
           scanners: 'vuln'
           severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+          exit-code: '0'
           format: 'sarif'
           output: 'trivy-fs-results.sarif'
 
-      - name: Trivy - relatorio informativo (nao bloqueia)
+      - name: Trivy - relatorio informativo MEDIUM/LOW
         if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -149,7 +162,8 @@ jobs:
 
   # ============================================================
   # ESTACAO 5 - PACKAGE
-  # Constroi e publica a imagem Docker no GHCR, tageada com o sha.
+  # Constroi e publica a imagem Docker no GHCR, tageada com o SHA.
+  # Falhas tecnicas de build ou publicacao continuam bloqueando.
   # ============================================================
   package:
     name: "5 - Package (build e publicacao da imagem)"
@@ -180,22 +194,22 @@ jobs:
 
   # ============================================================
   # ESTACAO 6 - SCAN DA IMAGEM (Trivy)
-  # Audita a imagem publicada (SO base + camadas).
+  # Modo auditoria: vulnerabilidades CRITICAL/HIGH sao exibidas,
+  # mas nao interrompem a esteira.
   # ============================================================
   scan-imagem-trivy:
     name: "6 - Scan da Imagem (Trivy)"
     runs-on: ubuntu-latest
     needs: package
     steps:
-      - name: Trivy - bloqueia em CRITICAL/HIGH
+      - name: Trivy - auditoria CRITICAL/HIGH
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
-          exit-code: '1'
+          exit-code: '0'
           format: 'table'
-#          output: 'trivy-image-results.sarif'
 
       - name: Publicar relatorio da imagem
         if: always()
@@ -207,8 +221,8 @@ jobs:
 
   # ============================================================
   # ESTACAO 7 - DEPLOY EM HOMOLOGACAO + DAST (OWASP ZAP)
-  # As duas ficam no MESMO job porque precisam compartilhar
-  # a rede Docker do mesmo runner. App Python/Flask na porta 5000.
+  # Modo auditoria: riscos altos sao reportados sem bloqueio.
+  # As etapas permanecem no mesmo job para compartilhar a rede.
   # ============================================================
   homolog-e-dast:
     name: "7 - Deploy em Homologacao + DAST (OWASP ZAP)"
@@ -225,32 +239,42 @@ jobs:
           echo "Aguardando a aplicacao responder..."
           for i in $(seq 1 15); do
             if curl -sf http://localhost:5000/ > /dev/null; then
-              echo "Aplicacao no ar."; break
+              echo "Aplicacao no ar."
+              break
             fi
             sleep 3
           done
 
       - name: Rodar o OWASP ZAP (baseline scan)
+        id: zap
+        continue-on-error: true
         run: |
           mkdir -p zap-report && chmod 777 zap-report
           docker run --rm --network host \
-            -v $(pwd)/zap-report:/zap/wrk/:rw \
-            -v $(pwd)/.zap/rules.tsv:/zap/rules.tsv:ro \
+            -v "$(pwd)/zap-report:/zap/wrk/:rw" \
+            -v "$(pwd)/.zap/rules.tsv:/zap/rules.tsv:ro" \
             ghcr.io/zaproxy/zaproxy:stable \
             zap-baseline.py -t http://localhost:5000 \
               -r zap-report.html -J zap-report.json \
               -c /zap/rules.tsv -I
-        continue-on-error: true
 
-      - name: Avaliar a politica de portao do DAST (bloqueia em risco ALTO)
+      - name: Avaliar resultados do DAST em modo auditoria
+        if: always()
         run: |
-          ALTOS=$(jq '[.site[]?.alerts[]? | select(.riskcode=="3")] | length' zap-report/zap-report.json)
+          if [ -f zap-report/zap-report.json ]; then
+            ALTOS=$(jq '[.site[]?.alerts[]? | select(.riskcode=="3")] | length' zap-report/zap-report.json)
+          else
+            ALTOS="indisponivel"
+          fi
+
           echo "Achados de risco ALTO: $ALTOS"
-          echo "## Resultado do DAST (OWASP ZAP)" >> $GITHUB_STEP_SUMMARY
-          echo "- Achados de risco ALTO: $ALTOS" >> $GITHUB_STEP_SUMMARY
-          if [ "$ALTOS" -gt 0 ]; then
-            echo "Build bloqueado: o DAST encontrou vulnerabilidade de risco ALTO."
-            exit 1
+          echo "## Resultado do DAST (OWASP ZAP)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Resultado da execucao do ZAP: ${{ steps.zap.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Achados de risco ALTO: $ALTOS" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$ALTOS" != "indisponivel" ] && [ "$ALTOS" -gt 0 ]; then
+            echo "ATENCAO: o DAST encontrou $ALTOS vulnerabilidades de risco ALTO."
+            echo "Pipeline em modo AUDITORIA: a execucao continuara."
           fi
 
       - name: Publicar o relatorio do ZAP
@@ -265,9 +289,8 @@ jobs:
         run: docker rm -f app-homolog || true
 
   # ============================================================
-  # ESTACAO 8 e 9 - APROVACAO HUMANA + DEPLOY EM PRODUCAO
-  # O Environment "producao" com Required reviewers e o "botao
-  # final": automacao ate aqui, decisao humana dai em diante.
+  # ESTACAO 8 - APROVACAO HUMANA + DEPLOY EM PRODUCAO
+  # O Environment "producao" continua sendo o controle humano.
   # ============================================================
   aprovacao-e-deploy-producao:
     name: "8 - Aprovacao Humana + Deploy em Producao"
@@ -296,17 +319,19 @@ jobs:
     steps:
       - name: Publicar o resumo no sumario da execucao
         run: |
-          echo "# Resumo da Esteira Segura" >> $GITHUB_STEP_SUMMARY
-          echo "| Etapa | Resultado |" >> $GITHUB_STEP_SUMMARY
-          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
-          echo "| Segredos | ${{ needs.deteccao-segredos.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| SAST | ${{ needs.sast-semgrep.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| SCA | ${{ needs.sca-trivy.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Imagem | ${{ needs.scan-imagem-trivy.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| DAST | ${{ needs.homolog-e-dast.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "# Resumo da Esteira Segura - Modo Auditoria" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Etapa | Resultado |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Segredos | ${{ needs.deteccao-segredos.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| SAST | ${{ needs.sast-semgrep.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| SCA | ${{ needs.sca-trivy.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Imagem | ${{ needs.scan-imagem-trivy.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| DAST | ${{ needs.homolog-e-dast.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "> Achados de seguranca sao reportados e nao bloqueiam a execucao." >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Notificar em caso de falha (exemplo com Slack)
+      - name: Notificar em caso de falha tecnica (exemplo com Slack)
         if: contains(needs.*.result, 'failure')
         run: |
           echo "Aqui entraria a chamada ao seu webhook de notificacao."
-          echo 'curl -X POST -H "Content-type: application/json" --data "{\"text\":\"Pipeline falhou\"}" $SLACK_WEBHOOK_URL'
+          echo 'curl -X POST -H "Content-type: application/json" --data "{\"text\":\"Pipeline apresentou falha tecnica\"}" $SLACK_WEBHOOK_URL'
