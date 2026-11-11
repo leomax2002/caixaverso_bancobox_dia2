@@ -113,7 +113,7 @@ jobs:
           cache: 'pip'
 
       - name: Instalar dependencias (resolve o requirements.txt)
-        run: pip install -r requirements-dev.txt
+        run: pip install -r core-box/requirements-dev.txt
 
       - name: Verificar que a aplicacao importa sem erros
         run: python -c "import app"
