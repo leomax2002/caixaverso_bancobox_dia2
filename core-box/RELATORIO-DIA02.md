@@ -8,7 +8,7 @@
 ## Placar da esteira
 | Etapa | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
 |---|---|---|---|---|
-| 01 | 3 | Corrigidos | Falsos positivos | Exceções |
+| 01 | 3 | 0 | 0 | 0 |
 | 02 | Achados (1ª execução) | 0 | 0 | 0 |
 | 03 | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
 | 04 | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
