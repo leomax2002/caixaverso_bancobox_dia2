@@ -10,8 +10,8 @@
 |---|---|---|---|---|
 | 01 | 3 | 0 | 0 | 0 |
 | 02 | 22 | 0 | 0 | 0 |
-| 03 | 48 | 0 | 0 | 0 |
-| 04 | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
+| 03 | 10 | 0 | 0 | 0 |
+| 04 | 48 | 0 | 0 | 0 |
 | 05 | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
 | 06 | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
 | 07 | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
