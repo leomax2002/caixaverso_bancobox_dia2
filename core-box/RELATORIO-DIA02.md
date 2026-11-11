@@ -8,6 +8,14 @@
 ## Placar da esteira
 | Etapa | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
 |---|---|---|---|---|
+| 01 | 3 | Corrigidos | Falsos positivos | Exceções |
+| 02 | Achados (1ª execução) | 0 | 0 | 0 |
+| 03 | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
+| 04 | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
+| 05 | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
+| 06 | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
+| 07 | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
+| 08 | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
  
 ## Ameaças do Threat Model cobertas pela esteira
 - Cobertas por ferramenta: TM-..
