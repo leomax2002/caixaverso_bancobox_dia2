@@ -63,7 +63,27 @@ def executar_pix(usuario, dados, idempotency_key=None):
         raise ErroPix("Saldo insuficiente.")
 
     # TM-20 (CWE-362): sem idempotência e sem controle de concorrência — Idempotency-Key ignorada
-    db.execute("UPDATE contas SET saldo = saldo - ? WHERE numero = ?", (valor, origem["numero"]))
+    if idempotency_key:
+        existente = db.execute(
+            "SELECT id, e2e, valor FROM transacoes WHERE idempotency_key = ? AND conta_origem = ?",
+            (idempotency_key, origem["numero"])
+        ).fetchone()
+        if existente:
+            return {"id": existente["id"], "e2e": existente["e2e"], "valor": existente["valor"], "comprovante": f"/comprovantes/{existente['id']}"}
+
+    db.execute("BEGIN IMMEDIATE")
+    if idempotency_key:
+        existente = db.execute(
+            "SELECT id, e2e, valor FROM transacoes WHERE idempotency_key = ? AND conta_origem = ?",
+            (idempotency_key, origem["numero"])
+        ).fetchone()
+        if existente:
+            db.rollback()
+            return {"id": existente["id"], "e2e": existente["e2e"], "valor": existente["valor"], "comprovante": f"/comprovantes/{existente['id']}"}
+    cur_debito = db.execute("UPDATE contas SET saldo = saldo - ? WHERE numero = ? AND saldo >= ?", (valor, origem["numero"], valor))
+    if cur_debito.rowcount == 0:
+        db.rollback()
+        raise ValueError("Saldo insuficiente")
     db.execute("UPDATE contas SET saldo = saldo + ? WHERE numero = ?", (valor, destino["numero"]))
     e2e = psti_client.enviar_pacs008({"origem": origem["numero"], "destino": destino["numero"], "valor": valor})
     cur = db.execute(
