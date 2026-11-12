@@ -8,7 +8,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends iputils-ping curl \
     && rm -rf /var/lib/apt/lists/* \
     && python -m pip install --no-cache-dir --upgrade pip "setuptools==84.1.0" wheel \
-    && rm -f /usr/local/lib/python3.13/ensurepip/_bundled/setuptools-*.whl \
+    && find / -name "*setuptools*70.3.0*" -exec rm -rf {} + 2>/dev/null || true \
     && python -m pip install --no-cache-dir -r requirements.txt
 
 COPY . .
