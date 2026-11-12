@@ -269,15 +269,24 @@ jobs:
       - name: Subir a aplicacao no ambiente de teste
         run: |
           docker run -d --name app-homolog -p 8000:8000 \
+            -e BOX_SECRET_KEY="${{ secrets.BOX_SECRET_KEY }}" \
+            -e BOX_JWT_SECRET="${{ secrets.BOX_JWT_SECRET }}" \
+            -e BOX_PSTI_API_KEY="${{ secrets.BOX_PSTI_API_KEY }}" \
+            -e BOX_SMS_GATEWAY_TOKEN="${{ secrets.BOX_SMS_GATEWAY_TOKEN }}" \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
           echo "Aguardando a aplicacao responder..."
           for i in $(seq 1 15); do
-            if curl -sf http://127.0.0.1:8000/ > /dev/null; then
+            if curl -sf http://localhost:8000/ > /dev/null; then
               echo "Aplicacao no ar."
-              break
+              exit 0
             fi
             sleep 3
           done
+
+          echo "ERRO: A aplicacao nao respondeu na porta 8000. Logs do container:"
+          docker logs app-homolog
+          exit 1
 
       - name: Rodar o OWASP ZAP (baseline scan)
         id: zap
