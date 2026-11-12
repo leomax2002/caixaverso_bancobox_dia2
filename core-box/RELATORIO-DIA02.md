@@ -29,7 +29,8 @@ OWASP: TM-07,TM-08..
 - Achados novos (não estavam no Threat Model): TM-33 ...
  
 ## Decisões de política
-- Por que cada gate bloqueia ou informa, e o limiar escolhido.
+- Na primeira execução, a esteira ficou em modo auditoria para mapear os achados; na execução final, o modo bloqueio deve impedir o deploy quando houver falhas críticas ou altas confirmadas, segredos expostos ou testes de segurança reprovados. Mas conseguimos corigir as vulnerabilidaddes mais graves.
+Ficamos com 1 achado o TM-01 força bruta.
  
 ## Lições aprendidas
 - 3 bullets.
