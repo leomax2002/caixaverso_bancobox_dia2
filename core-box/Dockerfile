@@ -9,7 +9,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir --upgrade "setuptools==84.1.0" \
+    && pip install --no-cache-dir --upgrade "setuptools==84.1.0" 
 
 COPY . .
 
