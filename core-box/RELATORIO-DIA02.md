@@ -8,13 +8,13 @@
 ## Placar da esteira
 | Etapa | Achados (1ª execução) | Corrigidos | Falsos positivos | Exceções |
 |---|---|---|---|---|
-| 01 | 3 | 0 | 0 | 0 |
-| 02 | 22 | 0 | 0 | 0 |
-| 03 | 10 | 0 | 0 | 0 |
-| 04 | 48 | 0 | 0 | 0 |
-| 05 | 1927 | 0 | 0 | 0 |
+| 01 | 3 | 2 | 1 | 0 |
+| 02 | 22 | 21 | 1 | 0 |
+| 03 | 10 | 9 | 0 | 1 |
+| 04 | 48 | 48 | 0 | 0 |
+| 05 | 1927 | 0 | 0 | 1927 |
 | 06 | 0 (Build, verificado na Etapa anterior) | 0 | 0 | 0 |
-| 07 | 9 | 0 | 0 | 0 |
+| 07 | 9 | 0 | 9 | 0 |
 | 08 | 0 (Approval) | 0 | 0 | 0 |
  
 ## Ameaças do Threat Model cobertas pela esteira
