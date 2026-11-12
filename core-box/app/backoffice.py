@@ -35,9 +35,18 @@ def painel():
     clientes = []
     if termo:
         # TM-29 (CWE-89): SQL montado por concatenação
-        sql = ("SELECT u.nome, u.cpf, u.senha_hash, c.numero, c.saldo FROM usuarios u "
-               "JOIN contas c ON c.usuario_id = u.id WHERE u.nome LIKE '%" + termo + "%' OR u.cpf = '" + termo + "'")
-        clientes = db.execute(sql).fetchall()
+        sql = """
+            SELECT u.nome, u.cpf, u.senha_hash, c.numero, c.saldo
+            FROM usuarios u
+            JOIN contas c ON c.usuario_id = u.id
+            WHERE u.nome LIKE ? OR u.cpf = ?
+        """
+
+        clientes = db.execute(
+            sql,
+            (f"%{termo}%", termo)
+        ).fetchall()
+
     eventos = db.execute("SELECT * FROM auditoria ORDER BY id DESC LIMIT 15").fetchall()
     total = db.execute("SELECT COUNT(*) FROM usuarios").fetchone()[0]
     return render_template("backoffice/painel.html", usuario=g.usuario, clientes=clientes,
@@ -51,8 +60,31 @@ def ajuste():
     conta = request.form.get("conta", "")
     tipo = request.form.get("tipo", "credito")
     valor = float(request.form.get("valor", "0"))
-    justificativa = request.form.get("justificativa", "")
+    justificativa = request.form.get("justificativa", "").strip()
+
+    # Justificativa obrigatória
+    if not justificativa:
+        return {"erro": "Justificativa obrigatória."}, 400
     # TM-10 (CWE-285): sem alçada, sem maker-checker, justificativa opcional
+    if valor > 10000:
+        auditoria.registrar(
+            g.usuario["nome"],
+            "AJUSTE_PENDENTE_APROVACAO",
+            {
+                "conta": conta,
+                "tipo": tipo,
+                "valor": valor,
+                "justificativa": justificativa
+            }
+        )
+
+        return {
+            "status": "pendente",
+            "conta": conta,
+            "valor": valor,
+            "mensagem": "Ajuste requer segunda aprovação."
+        }, 202
+
     sinal = 1 if tipo == "credito" else -1
     db.execute("UPDATE contas SET saldo = saldo + ? WHERE numero = ?", (sinal * valor, conta))
     db.commit()
