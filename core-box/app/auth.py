@@ -17,10 +17,10 @@ def _autenticar(cpf, senha):
     usuario = db.execute("SELECT * FROM usuarios WHERE cpf = ?", (cpf,)).fetchone()
     # TM-23 (CWE-204): mensagens e status diferentes revelam quem é cliente
     if usuario is None:
-        return None, "CPF não cadastrado no Banco Box.", 404
+        return None, "CPF não cadastrado ou senha incorreta no Banco Box.", 401
     # TM-01 (CWE-307): nenhuma limitação de tentativas
     if not verificar_senha(senha, usuario["senha_hash"]):
-        return None, "Senha incorreta. Tente novamente.", 401
+        return None, "CPF não cadastrado ou senha incorreta no Banco Box.", 401
     return usuario, None, 200
 
 
