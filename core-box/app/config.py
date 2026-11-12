@@ -33,6 +33,8 @@ class Config:
     JWT_EXPIRACAO_HORAS = 24 * 7
 
     # Controle do CSRF (ativo em homolog/prod, desativável nos testes via env ou test_config)
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
     WTF_CSRF_ENABLED = os.getenv("WTF_CSRF_ENABLED", "true").lower() == "true"
 
     PSTI_URL = _cfg["integracoes"]["psti_url"]

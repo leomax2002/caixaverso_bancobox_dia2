@@ -2,17 +2,41 @@
 {% block conteudo %}
 {% if erro %}<div class="err">{{ erro }}</div>{% endif %}{% if info %}<div class="info">{{ info }}</div>{% endif %}
 {% if etapa == 'dados' %}
-<form method="post" action="/recuperar"><div class="muted">Para sua segurança, confirme seus dados:</div>
-<label>CPF</label><input name="cpf"><label>Data de nascimento</label><input name="nascimento" placeholder="DD/MM/AAAA">
-<button class="btn">Enviar código por SMS</button></form>
-<div class="warn" style="margin-top:20px">Não tem mais acesso ao seu número? Cadastre um novo celular — basta informar CPF e nome da mãe.
-<form method="post" action="/recuperar/trocar-celular"><label>CPF</label><input name="cpf"><label>Nome da mãe</label><input name="nome_mae"><label>Novo celular</label><input name="novo_celular"><button class="btn sec">Trocar celular</button></form></div>
+<form method="post" action="/recuperar">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="muted">Para sua segurança, confirme seus dados:</div>
+  <label for="cpf_rec">CPF</label>
+  <input id="cpf_rec" name="cpf" placeholder="000.000.000-00">
+  <label for="nascimento">Data de nascimento</label>
+  <input id="nascimento" name="nascimento" placeholder="DD/MM/AAAA">
+  <button class="btn" type="submit">Enviar código por SMS</button>
+</form>
+
+<div class="warn">Não tem mais acesso ao seu número? Cadastre um novo celular — basta informar CPF e nome da mãe.
+  <form method="post" action="/recuperar/trocar-celular">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="cpf_cel">CPF</label>
+    <input id="cpf_cel" name="cpf" placeholder="000.000.000-00">
+    <label for="nome_mae">Nome da mãe</label>
+    <input id="nome_mae" name="nome_mae">
+    <label for="novo_celular">Novo celular</label>
+    <input id="novo_celular" name="novo_celular">
+    <button class="btn sec" type="submit">Trocar celular</button>
+  </form>
+</div>
 {% elif etapa == 'codigo' %}
 <div class="info">Enviamos um código de <b>4 dígitos</b> por SMS para <b>{{ celular }}</b>. O código vale por <b>24 horas</b>.</div>
-<form method="post" action="/recuperar/confirmar"><input type="hidden" name="cpf" value="{{ cpf }}">
-<label>Código recebido</label><input name="codigo" maxlength="4"><label>Nova senha</label><input name="nova_senha" type="password">
-<button class="btn">Criar nova senha</button></form>
-<div class="muted" style="margin-top:8px">Não recebeu? Reenviar código (quantas vezes quiser)</div>
+<form method="post" action="/recuperar/confirmar">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="cpf" value="{{ cpf }}">
+  <label for="codigo">Código recebido</label>
+  <input id="codigo" name="codigo" maxlength="4">
+  <label for="nova_senha">Nova senha</label>
+  <input id="nova_senha" name="nova_senha" type="password">
+  <button class="btn" type="submit">Criar nova senha</button>
+</form>
+<div class="muted">Não recebeu? Reenviar código (quantas vezes quiser)</div>
 {% else %}
 <div class="info">Senha alterada! Seus outros aparelhos continuam conectados para sua comodidade.</div><a class="btn" href="/login">Entrar</a>
-{% endif %}{% endblock %}
+{% endif %}
+{% endblock %}
