@@ -108,6 +108,7 @@ jobs:
       BOX_JWT_SECRET: ${{ secrets.BOX_JWT_SECRET }}
       BOX_PSTI_API_KEY: ${{ secrets.BOX_PSTI_API_KEY }}
       BOX_SMS_GATEWAY_TOKEN: ${{ secrets.BOX_SMS_GATEWAY_TOKEN }} 
+      WTF_CSRF_ENABLED: "false"
     
     defaults:
      run:

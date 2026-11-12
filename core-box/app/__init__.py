@@ -6,7 +6,7 @@ treinamento (Projeto Integrador DevSecOps — Dia 02). Não use em produção.
 import logging
 import traceback
 
-from flask import Flask, redirect, request, make_response
+from flask import Flask, g, redirect, request, make_response
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.exceptions import HTTPException
 
@@ -42,14 +42,14 @@ def create_app(test_config=None):
     app.register_blueprint(onboarding_bp)
     app.register_blueprint(interna_bp)
 
-    # Ativa proteção Anti-CSRF para os formulários web (/login, /abrir-conta, /recuperar)
-    csrf.init_app(app)
-
     @app.before_request
     def isentar_csrf_para_apis():
-        # Rotas de API REST autenticadas via JSON/JWT não dependem de cookie de sessão
-        if request.path.startswith("/api/"):
-            setattr(request, "csrf_valid", True)
+        # Rotas de API REST autenticadas via JSON/JWT não usam cookie de sessão
+        if request.path.startswith("/api/") or request.is_json:
+            g._csrf_valid = True
+
+    # Inicializa o CSRFProtect APÓS o before_request acima (ordem FIFO do Flask)
+    csrf.init_app(app)
 
     @app.after_request
     def aplicar_headers_seguranca(response):
