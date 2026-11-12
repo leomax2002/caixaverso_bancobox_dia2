@@ -5,11 +5,12 @@ WORKDIR /app
 COPY requirements.txt .
 
 RUN apt-get update \
-    && apt-get -y upgrade \
-    && apt-get install -y --no-install-recommends \
+    && apt-get install -y --no-install-recommends iputils-ping curl \
     && rm -rf /var/lib/apt/lists/* \
-    && pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt 
+    && python -m pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt \
+    && python -m pip install --no-cache-dir --upgrade "setuptools==78.1.1" \
+    && python -c "import setuptools; print(setuptools.__version__); assert setuptools.__version__ == '84.1.0'"
 
 COPY . .
 
