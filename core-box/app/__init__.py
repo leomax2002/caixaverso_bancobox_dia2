@@ -10,6 +10,17 @@ from flask import Flask, redirect, request, make_response
 
 from app import config, db
 
+import logging
+import traceback
+
+from flask import Flask, redirect, request, make_response
+from flask_wtf.csrf import CSRFProtect
+from werkzeug.exceptions import HTTPException
+
+from app import config, db
+
+csrf = CSRFProtect()
+
 
 def create_app(test_config=None):
     app = Flask(__name__)
@@ -38,24 +49,50 @@ def create_app(test_config=None):
     app.register_blueprint(onboarding_bp)
     app.register_blueprint(interna_bp)
 
+    # Ativa proteção Anti-CSRF nos formulários HTML
+    csrf.init_app(app)
+    # Isenta a API interna (chamadas server-to-server sem cookie de sessão)
+    csrf.exempt(interna_bp)
+
+    @app.after_request
+    def aplicar_headers_seguranca(response):
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data:; "
+            "frame-ancestors 'none';"
+        )
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=(self)"
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+        response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+        response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+
+        if not request.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
+            response.headers["Pragma"] = "no-cache"
+
+        return response
+
     @app.route("/")
     def index():
         return redirect("/login")
 
     @app.route("/health")
     def health():
-        # TM-07: expõe versão e ambiente para "facilitar o suporte"
-        return {"status": "ok", "app": "core-box", "versao": config.Config.VERSAO,
-                "ambiente": config.Config.AMBIENTE, "debug": app.config["DEBUG"]}
+        return {"status": "ok", "app": "core-box"}
 
     @app.errorhandler(Exception)
     def erro_generico(exc):
-        # TM-07 (CWE-209): devolve a stack trace completa ao cliente
+        # Mantém códigos HTTP padrão (ex: 404 em /sitemap.xml e /robots.txt)
+        if isinstance(exc, HTTPException):
+            return make_response({"erro": exc.name}, exc.code)
+
+        # Loga o trace apenas no servidor, sem expor ao cliente (CWE-209)
         detalhe = traceback.format_exc()
         app.logger.error("Erro não tratado: %s", detalhe)
-        resp = make_response(
-            {"erro": str(exc), "tipo": exc.__class__.__name__, "trace": detalhe}, 500
-        )
-        return resp
+        return make_response({"erro": "Erro interno do servidor."}, 500)
 
     return app
