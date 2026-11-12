@@ -225,6 +225,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: package
     steps:
+
+      - name: Checkout do repositorio
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
       - name: Trivy - auditoria CRITICAL/HIGH
         uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:

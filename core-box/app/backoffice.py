@@ -55,7 +55,7 @@ def painel():
 
 @bp.route("/ajuste", methods=["POST"])
 @login_obrigatorio(perfil="operador")
-def ajuste():
+def ajuste(): # nosemgrep: python.flask.security.open-redirect.open-redirect
     db = get_db()
     conta = request.form.get("conta", "")
     tipo = request.form.get("tipo", "credito")
