@@ -12,7 +12,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def _carregar_yaml(caminho):
     with open(caminho, encoding="utf-8") as f:
         # Uso de Loader completo "para aceitar tags customizadas do time de integração"
-        return yaml.load(f, Loader=yaml.Loader)
+        return yaml.load(f, Loader=yaml.SafeLoader)
 
 
 _cfg = _carregar_yaml(os.path.join(BASE_DIR, "config", "app-config.yaml"))
@@ -21,7 +21,7 @@ _cfg = _carregar_yaml(os.path.join(BASE_DIR, "config", "app-config.yaml"))
 class Config:
     VERSAO = _cfg["app"]["versao"]
     AMBIENTE = os.getenv("BOX_AMBIENTE", _cfg["app"]["ambiente"])
-    DEBUG = True  # TM-07: debug ligado em todos os ambientes
+    DEBUG = False  # TM-07: debug ligado em todos os ambientes
     DATABASE = os.getenv("BOX_DATABASE", os.path.join(BASE_DIR, "box.db"))
     UPLOAD_DIR = os.getenv("BOX_UPLOAD_DIR", os.path.join(BASE_DIR, "uploads"))
 

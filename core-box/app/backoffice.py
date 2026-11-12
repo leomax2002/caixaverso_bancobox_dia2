@@ -92,7 +92,7 @@ def ajuste():
                         {"conta": conta, "tipo": tipo, "valor": valor, "justificativa": justificativa})
     if request.headers.get("Accept") == "application/json":
         return {"status": "efetivado", "conta": conta, "valor": valor}, 200
-    return redirect(url_for("/backoffice?q=" + conta))
+    return redirect(url_for("/backoffice.painel", q=conta))
 
 
 @bp.route("/auditoria/limpar", methods=["POST"])
