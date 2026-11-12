@@ -94,6 +94,11 @@ def ajuste(): # nosemgrep: python.flask.security.open-redirect.open-redirect
         return {"status": "efetivado", "conta": conta, "valor": valor}, 200
 
     # nosemgrep: python.flask.security.open-redirect.open-redirect
+    row = db.execute("SELECT numero FROM contas WHERE numero = ?", (conta,)).fetchone()
+    if not row:
+        return {"erro": "Conta não encontrada."}, 404
+
+    conta_validada = str(row["numero"])
     return redirect(url_for("backoffice.painel", q=conta))
 
 
