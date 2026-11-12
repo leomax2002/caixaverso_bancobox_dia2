@@ -18,7 +18,11 @@
 | 08 | 0 (Approval) | 0 | 0 | 0 |
  
 ## Ameaças do Threat Model cobertas pela esteira
-- Cobertas por ferramenta: TM-..
+- Cobertas por ferramenta: 
+Semgrep: TM-03,TM-07,TM-12,TM-16,TM-17,TM-28,TM-29,TM-33
+GITLEAKS: TM-15
+TRIVY: TM-31
+OWASP: TM-07,TM-08 
 - Cobertas por regra própria: TM-..
 - Cobertas por teste (abuse case): TM-03, TM-23, TM-07, TM-12, TM-29, TM-04, TM-08, TM-20, TM-10..
 - Não cobertas (vão para o Dia 03/04): TM-01..
