@@ -93,16 +93,16 @@ jobs:
           name: relatorio-semgrep
           path: semgrep-results.*
 
-  # ============================================================
-  # ESTACAO 3 - BUILD
-  # App Python (app.py). Instala dependencias e valida que o
-  # modulo principal importa sem erro de sintaxe.
-  # Falhas tecnicas de build continuam interrompendo a esteira.
-  # ============================================================
+# ============================================================
+# ESTACAO 3 - BUILD
+# App Python. Instala dependencias e valida sintaxe/importacao.
+# Falhas tecnicas de build continuam interrompendo a esteira.
+# ============================================================
   build:
     name: "3 - Build"
     runs-on: ubuntu-latest
     needs: sast-semgrep
+
     steps:
       - uses: actions/checkout@v4
 
@@ -112,12 +112,29 @@ jobs:
           python-version: '3.12'
           cache: 'pip'
 
-      - name: Instalar dependencias (resolve o requirements.txt)
-        run: pip install -r core-box/requirements-dev.txt
+      - name: Instalar dependencias
+        working-directory: core-box
+        run: pip install -r requirements-dev.txt
+
+      - name: instalar dependencias
+        working-directory: core-box
+        run: pip install --upgrade urllib3 requests
+
+      - name: Validar sintaxe Python
+        working-directory: core-box
+        run: python -m compileall -q app
 
       - name: Verificar que a aplicacao importa sem erros
+        working-directory: core-box
         run: python -c "import app"
 
+
+    # ========================================================
+    # ABUSE CASES
+    # ========================================================
+      - name: Executar testes de Abuse Cases
+        working-directory: core-box
+        run: pytest tests/test_abuse_cases.py -v
   # ============================================================
   # ESTACAO 4 - SCA (Trivy - dependencias)
   # Modo auditoria: CRITICAL/HIGH e MEDIUM/LOW sao reportados,
@@ -134,7 +151,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
-          scan-ref: '.'
+          scan-ref: './core-box'
           scanners: 'vuln'
           severity: 'CRITICAL,HIGH'
           exit-code: '0'
@@ -146,7 +163,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
-          scan-ref: '.'
+          scan-ref: './core-box'
           scanners: 'vuln'
           severity: 'MEDIUM,LOW'
           exit-code: '0'
