@@ -99,7 +99,7 @@ def ajuste(): # nosemgrep: python.flask.security.open-redirect.open-redirect
         return {"erro": "Conta não encontrada."}, 404
 
     conta_validada = str(row["numero"])
-    return redirect(url_for("backoffice.painel", q=conta))
+    return redirect(url_for("backoffice.painel", q=conta_validada))
 
 
 @bp.route("/auditoria/limpar", methods=["POST"])
