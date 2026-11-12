@@ -27,14 +27,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout com historico completo
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
 
       - name: Rodar Gitleaks
         id: gitleaks
         continue-on-error: true
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: deteccao-segredos
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Instalar o Semgrep
         run: pip install semgrep
@@ -88,7 +88,7 @@ jobs:
 
       - name: Publicar relatorios como artefato
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: relatorio-semgrep
           path: semgrep-results.*
@@ -108,10 +108,10 @@ jobs:
       working-directory: ./core-box
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Configurar Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -150,10 +150,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Trivy - auditoria CRITICAL/HIGH
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           scan-type: 'fs'
           scan-ref: './core-box'
@@ -165,7 +165,7 @@ jobs:
 
       - name: Trivy - relatorio informativo MEDIUM/LOW
         if: always()
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           scan-type: 'fs'
           scan-ref: './core-box'
@@ -176,7 +176,7 @@ jobs:
 
       - name: Publicar relatorio do Trivy
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: relatorio-trivy-dependencias
           path: trivy-fs-results.sarif
@@ -192,19 +192,19 @@ jobs:
     runs-on: ubuntu-latest
     needs: sca-trivy
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Login no GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build e push da imagem
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ./core-box
           file: ./core-box/Dockerfile
@@ -226,7 +226,7 @@ jobs:
     needs: package
     steps:
       - name: Trivy - auditoria CRITICAL/HIGH
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}'
           severity: 'CRITICAL,HIGH'
@@ -236,7 +236,7 @@ jobs:
 
       - name: Publicar relatorio da imagem
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: relatorio-trivy-imagem
           path: trivy-image-results.sarif
@@ -253,7 +253,7 @@ jobs:
     needs: scan-imagem-trivy
     environment: homologacao
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Subir a aplicacao no ambiente de teste
         run: |
@@ -302,7 +302,7 @@ jobs:
 
       - name: Publicar o relatorio do ZAP
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: relatorio-zap-dast
           path: zap-report/
