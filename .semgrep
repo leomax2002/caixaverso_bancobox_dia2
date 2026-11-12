@@ -1,0 +1,33 @@
+rules:
+  - id: box-tm03-conta-origem-vinda-do-cliente
+    languages: [python]
+    severity: ERROR
+    message: TM-03 (BOLA / CWE-639) - a conta de origem não pode vir da requisição do cliente.
+    metadata: {threat_model: TM-03, cwe: "CWE-639", owasp: "API1:2023"}
+    pattern-either:
+      - pattern: $DADOS.get("conta_origem", ...)
+      - pattern: $DADOS["conta_origem"]
+  # 1. Detecta possíveis secrets/senhas hardcoded
+  - id: python-hardcoded-secret
+    languages:
+      - python
+    severity: ERROR
+    message: "Possível secret hardcoded. Utilize variável de ambiente ou Secret Manager."
+    patterns:
+      - pattern-either:
+          - pattern: $VAR = "$VALUE"
+          - pattern: $VAR = '$VALUE'
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: "(?i).*(password|passwd|pwd|secret|token|api_key|apikey).*"
+
+  # 2. Detecta execução potencialmente insegura de comandos
+  - id: python-subprocess-shell-true
+    languages:
+      - python
+    severity: ERROR
+    message: "Uso de subprocess com shell=True pode permitir Command Injection."
+    pattern-either:
+      - pattern: subprocess.run(..., shell=True, ...)
+      - pattern: subprocess.call(..., shell=True, ...)
+      - pattern: subprocess.Popen(..., shell=True, ...)
