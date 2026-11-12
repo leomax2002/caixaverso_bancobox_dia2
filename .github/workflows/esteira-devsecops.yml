@@ -230,6 +230,7 @@ jobs:
         with:
           image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}'
           severity: 'CRITICAL,HIGH'
+          trivyignores: '.trivyignore'
           ignore-unfixed: true
           exit-code: '0'
           format: 'table'
