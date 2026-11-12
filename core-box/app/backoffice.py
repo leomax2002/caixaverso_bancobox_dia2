@@ -3,7 +3,7 @@ import csv
 import io
 import os
 
-from flask import Blueprint, render_template, request, g, make_response, redirect, Response
+from flask import Blueprint, render_template, request, g, make_response, redirect, Response,url_for
 
 from app import auditoria
 from app.db import get_db
@@ -92,7 +92,7 @@ def ajuste():
                         {"conta": conta, "tipo": tipo, "valor": valor, "justificativa": justificativa})
     if request.headers.get("Accept") == "application/json":
         return {"status": "efetivado", "conta": conta, "valor": valor}, 200
-    return redirect("/backoffice?q=" + conta)
+    return redirect(url_for("/backoffice?q=" + conta))
 
 
 @bp.route("/auditoria/limpar", methods=["POST"])
@@ -125,5 +125,29 @@ def diagnostico():
     """Ferramenta "temporária" do suporte para testar conectividade com o PSTI."""
     host = request.args.get("host", "127.0.0.1")
     # Achado NOVO (não modelado no Dia 01): injeção de comando (CWE-78)
-    saida = os.popen("ping -c 1 " + host).read()
-    return Response(saida or "sem resposta", mimetype="text/plain")
+    # saida = os.popen("ping -c 1 " + host).read()
+    # return Response(saida or "sem resposta", mimetype="text/plain")
+    try:
+        # Aceita somente IPv4/IPv6 validos
+        ipaddress.ip_address(host)
+    except ValueError:
+        return {"erro": "Endereco IP invalido."}, 400
+
+    try:
+        resultado = subprocess.run(
+            ["ping", "-c", "1", host],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False
+        )
+
+        saida = resultado.stdout or resultado.stderr or "sem resposta"
+
+        return Response(
+            saida,
+            mimetype="text/plain"
+        )
+
+    except subprocess.TimeoutExpired:
+        return {"erro": "Timeout ao executar diagnostico."}, 504
