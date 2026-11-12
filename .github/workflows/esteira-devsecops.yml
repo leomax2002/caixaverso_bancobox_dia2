@@ -1,4 +1,4 @@
-name: Pipeline Seguro CI/CD - DevSecOps (Modo Auditoria)
+name: Pipeline Seguro CI/CD - DevSecOps (Security Gates Ativos)
 
 on:
   push:
@@ -19,8 +19,7 @@ env:
 jobs:
   # ============================================================
   # ESTACAO 1 - DETECCAO DE SEGREDOS (Gitleaks)
-  # Modo auditoria: achados sao reportados, mas nao interrompem
-  # a execucao da esteira.
+  # Security Gate: qualquer segredo exposto interrompe a esteira.
   # ============================================================
   deteccao-segredos:
     name: "1 - Deteccao de Segredos (Gitleaks)"
@@ -33,7 +32,6 @@ jobs:
 
       - name: Rodar Gitleaks
         id: gitleaks
-        continue-on-error: true
         uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -44,14 +42,12 @@ jobs:
           echo "## Resultado da deteccao de segredos (Gitleaks)" >> "$GITHUB_STEP_SUMMARY"
           echo "- Resultado da verificacao: ${{ steps.gitleaks.outcome }}" >> "$GITHUB_STEP_SUMMARY"
           if [ "${{ steps.gitleaks.outcome }}" != "success" ]; then
-            echo "ATENCAO: o Gitleaks encontrou achados ou nao concluiu normalmente."
-            echo "Pipeline em modo AUDITORIA: a execucao continuara."
+            echo "BLOQUEIO: o Gitleaks encontrou segredos ou falhou na verificacao."
           fi
 
   # ============================================================
   # ESTACAO 2 - SAST (Semgrep)
-  # Analisa o codigo-fonte com regras OWASP e de seguranca.
-  # Modo auditoria: achados ERROR sao reportados sem bloqueio.
+  # Security Gate: achados com severidade ERROR bloqueiam a esteira.
   # ============================================================
   sast-semgrep:
     name: "2 - SAST (Semgrep)"
@@ -71,7 +67,14 @@ jobs:
             --config=p/secrets \
             --json --output=semgrep-results.json
 
-      - name: Avaliar resultados do SAST em modo auditoria
+      - name: Publicar relatorios como artefato
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relatorio-semgrep
+          path: semgrep-results.*
+
+      - name: Security Gate - Avaliar resultados do SAST
         run: |
           ERROS=$(jq '[.results[] | select(.extra.severity=="ERROR")] | length' semgrep-results.json)
           AVISOS=$(jq '[.results[] | select(.extra.severity!="ERROR")] | length' semgrep-results.json)
@@ -82,37 +85,29 @@ jobs:
           echo "- Avisos: $AVISOS" >> "$GITHUB_STEP_SUMMARY"
 
           if [ "$ERROS" -gt 0 ]; then
-            echo "ATENCAO: foram encontrados $ERROS achados ERROR no codigo."
-            echo "Pipeline em modo AUDITORIA: a execucao continuara."
+            echo "BLOQUEIO: foram encontrados $ERROS achados ERROR no codigo."
+            exit 1
           fi
 
-      - name: Publicar relatorios como artefato
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: relatorio-semgrep
-          path: semgrep-results.*
-
-# ============================================================
-# ESTACAO 3 - BUILD
-# App Python. Instala dependencias e valida sintaxe/importacao.
-# Falhas tecnicas de build continuam interrompendo a esteira.
-# ============================================================
+  # ============================================================
+  # ESTACAO 3 - BUILD E ABUSE CASES
+  # Security Gate: falhas de compilacao ou testes de abuso bloqueiam.
+  # ============================================================
   build:
-    name: "3 - Build"
+    name: "3 - Build e Abuse Cases"
     runs-on: ubuntu-latest
     needs: sast-semgrep
-    
+
     env:
       BOX_SECRET_KEY: ${{ secrets.BOX_SECRET_KEY }}
       BOX_JWT_SECRET: ${{ secrets.BOX_JWT_SECRET }}
       BOX_PSTI_API_KEY: ${{ secrets.BOX_PSTI_API_KEY }}
-      BOX_SMS_GATEWAY_TOKEN: ${{ secrets.BOX_SMS_GATEWAY_TOKEN }} 
+      BOX_SMS_GATEWAY_TOKEN: ${{ secrets.BOX_SMS_GATEWAY_TOKEN }}
       WTF_CSRF_ENABLED: "false"
-    
+
     defaults:
-     run:
-      working-directory: ./core-box
+      run:
+        working-directory: ./core-box
 
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -124,33 +119,22 @@ jobs:
           cache: 'pip'
 
       - name: Instalar dependencias
-        working-directory: core-box
-        run: pip install -r requirements-dev.txt
-
-      - name: instalar dependencias
-        working-directory: core-box
-        run: pip install --upgrade urllib3 requests
+        run: |
+          pip install -r requirements-dev.txt
+          pip install --upgrade urllib3 requests
 
       - name: Validar sintaxe Python
-        working-directory: core-box
         run: python -m compileall -q app
 
       - name: Verificar que a aplicacao importa sem erros
-        working-directory: core-box
         run: python -c "import app"
 
-
-    # ========================================================
-    # ABUSE CASES
-    # ========================================================
-      - name: Executar testes de Abuse Cases
-        working-directory: core-box
-        continue-on-error: true
+      - name: Security Gate - Executar testes de Abuse Cases
         run: pytest tests/test_abuse_cases.py -v
+
   # ============================================================
   # ESTACAO 4 - SCA (Trivy - dependencias)
-  # Modo auditoria: CRITICAL/HIGH e MEDIUM/LOW sao reportados,
-  # mas vulnerabilidades nao interrompem a esteira.
+  # Security Gate: vulnerabilidades CRITICAL/HIGH bloqueiam a esteira.
   # ============================================================
   sca-trivy:
     name: "4 - SCA (Trivy - dependencias)"
@@ -159,19 +143,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Trivy - auditoria CRITICAL/HIGH
-        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
-        with:
-          scan-type: 'fs'
-          scan-ref: './core-box'
-          scanners: 'vuln'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'
-          format: 'sarif'
-          output: 'trivy-fs-results.sarif'
-
       - name: Trivy - relatorio informativo MEDIUM/LOW
-        if: always()
         uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           scan-type: 'fs'
@@ -180,6 +152,18 @@ jobs:
           severity: 'MEDIUM,LOW'
           exit-code: '0'
           format: 'table'
+
+      - name: Security Gate - Trivy CRITICAL/HIGH
+        id: trivy_fs
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: 'fs'
+          scan-ref: './core-box'
+          scanners: 'vuln'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          format: 'sarif'
+          output: 'trivy-fs-results.sarif'
 
       - name: Publicar relatorio do Trivy
         if: always()
@@ -192,7 +176,6 @@ jobs:
   # ============================================================
   # ESTACAO 5 - PACKAGE
   # Constroi e publica a imagem Docker no GHCR, tageada com o SHA.
-  # Falhas tecnicas de build ou publicacao continuam bloqueando.
   # ============================================================
   package:
     name: "5 - Package (build e publicacao da imagem)"
@@ -224,26 +207,24 @@ jobs:
 
   # ============================================================
   # ESTACAO 6 - SCAN DA IMAGEM (Trivy)
-  # Modo auditoria: vulnerabilidades CRITICAL/HIGH sao exibidas,
-  # mas nao interrompem a esteira.
+  # Security Gate: CVEs CRITICAL/HIGH corrigiveis bloqueiam deploy.
   # ============================================================
   scan-imagem-trivy:
     name: "6 - Scan da Imagem (Trivy)"
     runs-on: ubuntu-latest
     needs: package
     steps:
-
       - name: Checkout do repositorio
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Trivy - auditoria CRITICAL/HIGH
+      - name: Security Gate - Trivy Imagem CRITICAL/HIGH
         uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}'
           severity: 'CRITICAL,HIGH'
           trivyignores: '.trivyignore'
           ignore-unfixed: true
-          exit-code: '0'
+          exit-code: '1'
           format: 'table'
 
       - name: Publicar relatorio da imagem
@@ -256,8 +237,8 @@ jobs:
 
   # ============================================================
   # ESTACAO 7 - DEPLOY EM HOMOLOGACAO + DAST (OWASP ZAP)
-  # Modo auditoria: riscos altos sao reportados sem bloqueio.
-  # As etapas permanecem no mesmo job para compartilhar a rede.
+  # Security Gate: riscos altos (riskcode 3) ou ausencia de
+  # relatorio bloqueiam a promocao para producao.
   # ============================================================
   homolog-e-dast:
     name: "7 - Deploy em Homologacao + DAST (OWASP ZAP)"
@@ -302,25 +283,6 @@ jobs:
               -r zap-report.html -J zap-report.json \
               -c /zap/rules.tsv -I
 
-      - name: Avaliar resultados do DAST em modo auditoria
-        if: always()
-        run: |
-          if [ -f zap-report/zap-report.json ]; then
-            ALTOS=$(jq '[.site[]?.alerts[]? | select(.riskcode=="3")] | length' zap-report/zap-report.json)
-          else
-            ALTOS="indisponivel"
-          fi
-
-          echo "Achados de risco ALTO: $ALTOS"
-          echo "## Resultado do DAST (OWASP ZAP)" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Resultado da execucao do ZAP: ${{ steps.zap.outcome }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Achados de risco ALTO: $ALTOS" >> "$GITHUB_STEP_SUMMARY"
-
-          if [ "$ALTOS" != "indisponivel" ] && [ "$ALTOS" -gt 0 ]; then
-            echo "ATENCAO: o DAST encontrou $ALTOS vulnerabilidades de risco ALTO."
-            echo "Pipeline em modo AUDITORIA: a execucao continuara."
-          fi
-
       - name: Publicar o relatorio do ZAP
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -332,9 +294,31 @@ jobs:
         if: always()
         run: docker rm -f app-homolog || true
 
+      - name: Security Gate - Avaliar resultados do DAST
+        run: |
+          if [ ! -f zap-report/zap-report.json ]; then
+            echo "BLOQUEIO: relatorio zap-report.json nao foi gerado."
+            echo "## Resultado do DAST (OWASP ZAP)" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Status: FALHA (relatorio ausente)" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          ALTOS=$(jq '[.site[]?.alerts[]? | select(.riskcode=="3")] | length' zap-report/zap-report.json)
+          MEDIOS=$(jq '[.site[]?.alerts[]? | select(.riskcode=="2")] | length' zap-report/zap-report.json)
+
+          echo "Achados de risco ALTO: $ALTOS | MEDIO: $MEDIOS"
+          echo "## Resultado do DAST (OWASP ZAP)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Achados de risco ALTO: $ALTOS" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Achados de risco MEDIO: $MEDIOS" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$ALTOS" -gt 0 ]; then
+            echo "BLOQUEIO: o DAST encontrou $ALTOS vulnerabilidades de risco ALTO."
+            exit 1
+          fi
+
   # ============================================================
   # ESTACAO 8 - APROVACAO HUMANA + DEPLOY EM PRODUCAO
-  # O Environment "producao" continua sendo o controle humano.
+  # So executa se TODOS os Security Gates anteriores passarem.
   # ============================================================
   aprovacao-e-deploy-producao:
     name: "8 - Aprovacao Humana + Deploy em Producao"
@@ -358,24 +342,22 @@ jobs:
   resumo-da-esteira:
     name: "Resumo da Esteira"
     runs-on: ubuntu-latest
-    needs: [deteccao-segredos, sast-semgrep, sca-trivy, scan-imagem-trivy, homolog-e-dast]
+    needs: [deteccao-segredos, sast-semgrep, build, sca-trivy, scan-imagem-trivy, homolog-e-dast]
     if: always()
     steps:
       - name: Publicar o resumo no sumario da execucao
         run: |
-          echo "# Resumo da Esteira Segura - Modo Auditoria" >> "$GITHUB_STEP_SUMMARY"
+          echo "# Resumo da Esteira Segura - Security Gates" >> "$GITHUB_STEP_SUMMARY"
           echo "| Etapa | Resultado |" >> "$GITHUB_STEP_SUMMARY"
           echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Segredos | ${{ needs.deteccao-segredos.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| SAST | ${{ needs.sast-semgrep.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| SCA | ${{ needs.sca-trivy.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Imagem | ${{ needs.scan-imagem-trivy.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| DAST | ${{ needs.homolog-e-dast.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "> Achados de seguranca sao reportados e nao bloqueiam a execucao." >> "$GITHUB_STEP_SUMMARY"
+          echo "| 1 - Segredos (Gitleaks) | ${{ needs.deteccao-segredos.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 2 - SAST (Semgrep) | ${{ needs.sast-semgrep.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 3 - Build & Abuse Cases | ${{ needs.build.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 4 - SCA (Trivy FS) | ${{ needs.sca-trivy.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 6 - Scan Imagem (Trivy) | ${{ needs.scan-imagem-trivy.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 7 - DAST (OWASP ZAP) | ${{ needs.homolog-e-dast.result }} |" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Notificar em caso de falha tecnica (exemplo com Slack)
+      - name: Notificar em caso de bloqueio ou falha
         if: contains(needs.*.result, 'failure')
         run: |
-          echo "Aqui entraria a chamada ao seu webhook de notificacao."
-          echo 'curl -X POST -H "Content-type: application/json" --data "{\"text\":\"Pipeline apresentou falha tecnica\"}" $SLACK_WEBHOOK_URL'
+          echo "Pipeline bloqueada por Security Gate ou falha tecnica."
