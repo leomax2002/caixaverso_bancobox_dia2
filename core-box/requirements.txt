@@ -15,5 +15,5 @@ chardet==4.0.0
 certifi>=2020.12.5
 gunicorn==22.0.0
 setuptools==84.1.0
-python-dotenv==1.0.1
+python-dotenv==1.2.2
 Flask-WTF>=1.2.1
