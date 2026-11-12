@@ -92,6 +92,8 @@ def ajuste():
                         {"conta": conta, "tipo": tipo, "valor": valor, "justificativa": justificativa})
     if request.headers.get("Accept") == "application/json":
         return {"status": "efetivado", "conta": conta, "valor": valor}, 200
+
+    # nosemgrep: python.flask.security.open-redirect.open-redirect
     return redirect(url_for("backoffice.painel", q=conta))
 
 
