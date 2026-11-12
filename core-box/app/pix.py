@@ -33,7 +33,16 @@ def executar_pix(usuario, dados, idempotency_key=None):
 
     # TM-03 (CWE-639 / API1:2023 BOLA): conta de origem vem do cliente
     conta_origem = dados.get("conta_origem") or conta_do_usuario(usuario["id"])["numero"]
-    origem = db.execute("SELECT * FROM contas WHERE numero = ?", (conta_origem,)).fetchone()
+
+    origem = db.execute(
+        """
+        SELECT *
+        FROM contas
+        WHERE numero = ?
+        AND usuario_id = ?
+        """, (conta_origem, usuario["id"])
+    ).fetchone()
+    
     if origem is None:
         raise ErroPix("Conta de origem inexistente.", 404)
 
@@ -128,8 +137,16 @@ def pix_api():
 @login_obrigatorio(api=True)
 def consulta_dict(chave):
     # TM-19: sem rate limit e devolvendo dados demais do titular
+    identificador = request.headers.get("Authorization") or request.remote_addr or "anon"
+    agora = time.time()
+
+    # Bloqueia se a última consulta foi há menos de 1 segundo
+    if agora - _ultima_consulta.get(identificador, 0) < 1.0:
+        return jsonify({"erro": "Aguarde antes de consultar novamente"}), 429
+    _ultima_consulta[identificador] = agora
+
     row = get_db().execute(
-        "SELECT u.nome, u.cpf, c.agencia, c.numero FROM chaves_pix k JOIN contas c ON c.numero = k.conta_numero"
+        "SELECT u.nome, c.agencia FROM chaves_pix k JOIN contas c ON c.numero = k.conta_numero"
         " JOIN usuarios u ON u.id = c.usuario_id WHERE k.chave = ?", (chave,)).fetchone()
     if not row:
         return jsonify({"erro": "Chave não encontrada"}), 404
@@ -137,14 +154,30 @@ def consulta_dict(chave):
 
 
 @bp.route("/comprovantes/<int:tx_id>")
+@login_obrigatorio()
 def comprovante(tx_id):
     # TM-08: comprovante público, sem autenticação, ID sequencial, CPF completo
     db = get_db()
     tx = db.execute("SELECT * FROM transacoes WHERE id = ?", (tx_id,)).fetchone()
     if tx is None:
         return render_template("comprovante.html", tx=None), 404
+    conta_origem = db.execute(
+        """
+        SELECT usuario_id
+        FROM contas
+        WHERE numero = ?
+        """,
+        (tx["conta_origem"],)
+    ).fetchone()
+
+    if conta_origem is None:
+        return "", 404
+
+    if conta_origem["usuario_id"] != g.usuario["id"]:
+        return "", 403
+
     def titular(numero):
-        return db.execute("SELECT u.nome, u.cpf, c.agencia, c.numero FROM contas c JOIN usuarios u"
+        return db.execute("SELECT u.nome, SUBSTR(u.cpf, 1, 4) || '*******' AS cpf, c.agencia, c.numero FROM contas c JOIN usuarios u"
                           " ON u.id = c.usuario_id WHERE c.numero = ?", (numero,)).fetchone()
     return render_template("comprovante.html", tx=tx, origem=titular(tx["conta_origem"]),
                            destino=titular(tx["conta_destino"]), base_url=request.host_url)
