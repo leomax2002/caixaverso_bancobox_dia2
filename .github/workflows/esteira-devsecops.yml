@@ -257,7 +257,7 @@ jobs:
 
       - name: Subir a aplicacao no ambiente de teste
         run: |
-          docker run -d --name app-homolog -p 5000:5000 \
+          docker run -d --name app-homolog -p 8000:8000 \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           echo "Aguardando a aplicacao responder..."
           for i in $(seq 1 15); do
@@ -277,7 +277,7 @@ jobs:
             -v "$(pwd)/zap-report:/zap/wrk/:rw" \
             -v "$(pwd)/.zap/rules.tsv:/zap/rules.tsv:ro" \
             ghcr.io/zaproxy/zaproxy:stable \
-            zap-baseline.py -t http://localhost:5000 \
+            zap-baseline.py -t http://localhost:8000 \
               -r zap-report.html -J zap-report.json \
               -c /zap/rules.tsv -I
 
