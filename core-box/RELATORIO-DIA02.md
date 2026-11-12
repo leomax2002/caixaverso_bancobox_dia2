@@ -20,8 +20,8 @@
 ## Ameaças do Threat Model cobertas pela esteira
 - Cobertas por ferramenta: TM-..
 - Cobertas por regra própria: TM-..
-- Cobertas por teste (abuse case): TM-..
-- Não cobertas (vão para o Dia 03/04): TM-..
+- Cobertas por teste (abuse case): TM-03, TM-23, TM-07, TM-12, TM-29, TM-04, TM-08, TM-20, TM-10..
+- Não cobertas (vão para o Dia 03/04): TM-01..
 - Achados novos (não estavam no Threat Model): TM-33 ...
  
 ## Decisões de política
