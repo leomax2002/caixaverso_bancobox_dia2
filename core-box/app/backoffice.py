@@ -60,8 +60,31 @@ def ajuste():
     conta = request.form.get("conta", "")
     tipo = request.form.get("tipo", "credito")
     valor = float(request.form.get("valor", "0"))
-    justificativa = request.form.get("justificativa", "")
+    justificativa = request.form.get("justificativa", "").strip()
+
+    # Justificativa obrigatória
+    if not justificativa:
+        return {"erro": "Justificativa obrigatória."}, 400
     # TM-10 (CWE-285): sem alçada, sem maker-checker, justificativa opcional
+    if valor > 10000:
+        auditoria.registrar(
+            g.usuario["nome"],
+            "AJUSTE_PENDENTE_APROVACAO",
+            {
+                "conta": conta,
+                "tipo": tipo,
+                "valor": valor,
+                "justificativa": justificativa
+            }
+        )
+
+        return {
+            "status": "pendente",
+            "conta": conta,
+            "valor": valor,
+            "mensagem": "Ajuste requer segunda aprovação."
+        }, 202
+
     sinal = 1 if tipo == "credito" else -1
     db.execute("UPDATE contas SET saldo = saldo + ? WHERE numero = ?", (sinal * valor, conta))
     db.commit()

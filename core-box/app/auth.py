@@ -8,6 +8,7 @@ from app import auditoria
 from app.db import get_db
 from app.seguranca import verificar_senha, emitir_token, hash_senha
 
+
 bp = Blueprint("auth", __name__)
 
 
