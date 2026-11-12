@@ -9,8 +9,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && pip install --no-cache-dir --upgrade pip \
-    && python -m pip install --no-cache-dir --upgrade "pip>=24.0" "setuptools>=78.1.1" \
-    && pip install --no-cache-dir -r requirements.txt
+    && python -m pip install --no-cache-dir --upgrade "pip>=24.0" \
+    && pip install --no-cache-dir -r requirements.txt \
+    && python -m pip install --no-cache-dir --upgrade "setuptools==78.1.1"
 
 COPY . .
 
