@@ -1,12 +1,14 @@
-FROM python:3.11.4-slim
+FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
 COPY requirements.txt .
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends iputils-ping curl \
+    && apt-get -y upgrade \
+    && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
 COPY . .
