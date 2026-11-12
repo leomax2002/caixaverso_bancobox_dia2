@@ -103,6 +103,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: sast-semgrep
     
+    env:
+      BOX_SECRET_KEY: ${{ secrets.BOX_SECRET_KEY }}
+      BOX_JWT_SECRET: ${{ secrets.BOX_JWT_SECRET }}
+      BOX_PSTI_API_KEY: ${{ secrets.BOX_PSTI_API_KEY }}
+      BOX_SMS_GATEWAY_TOKEN: ${{ secrets.BOX_SMS_GATEWAY_TOKEN }} 
+    
     defaults:
      run:
       working-directory: ./core-box
