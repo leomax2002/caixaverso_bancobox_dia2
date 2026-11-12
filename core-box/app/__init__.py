@@ -7,13 +7,6 @@ import logging
 import traceback
 
 from flask import Flask, redirect, request, make_response
-
-from app import config, db
-
-import logging
-import traceback
-
-from flask import Flask, redirect, request, make_response
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.exceptions import HTTPException
 
@@ -49,18 +42,24 @@ def create_app(test_config=None):
     app.register_blueprint(onboarding_bp)
     app.register_blueprint(interna_bp)
 
-    # Ativa proteção Anti-CSRF nos formulários HTML
+    # Ativa proteção Anti-CSRF para os formulários web (/login, /abrir-conta, /recuperar)
     csrf.init_app(app)
-    # Isenta a API interna (chamadas server-to-server sem cookie de sessão)
-    csrf.exempt(interna_bp)
+
+    @app.before_request
+    def isentar_csrf_para_apis():
+        # Rotas de API REST autenticadas via JSON/JWT não dependem de cookie de sessão
+        if request.path.startswith("/api/"):
+            setattr(request, "csrf_valid", True)
 
     @app.after_request
     def aplicar_headers_seguranca(response):
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "script-src 'self' 'unsafe-inline'; "
+            "script-src 'self'; "
+            "style-src 'self'; "
             "img-src 'self' data:; "
+            "form-action 'self'; "
+            "base-uri 'self'; "
             "frame-ancestors 'none';"
         )
         response.headers["X-Frame-Options"] = "DENY"
@@ -86,11 +85,11 @@ def create_app(test_config=None):
 
     @app.errorhandler(Exception)
     def erro_generico(exc):
-        # Mantém códigos HTTP padrão (ex: 404 em /sitemap.xml e /robots.txt)
+        # Preserva códigos HTTP padrão (ex: 404 em /sitemap.xml e /robots.txt)
         if isinstance(exc, HTTPException):
             return make_response({"erro": exc.name}, exc.code)
 
-        # Loga o trace apenas no servidor, sem expor ao cliente (CWE-209)
+        # Registra a stack trace apenas no log interno, sem expor ao cliente (CWE-209)
         detalhe = traceback.format_exc()
         app.logger.error("Erro não tratado: %s", detalhe)
         return make_response({"erro": "Erro interno do servidor."}, 500)
