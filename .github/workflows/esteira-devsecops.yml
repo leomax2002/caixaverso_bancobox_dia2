@@ -272,7 +272,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           echo "Aguardando a aplicacao responder..."
           for i in $(seq 1 15); do
-            if curl -sf http://localhost:8000/ > /dev/null; then
+            if curl -sf http://127.0.0.1:8000/ > /dev/null; then
               echo "Aplicacao no ar."
               break
             fi
@@ -288,7 +288,7 @@ jobs:
             -v "$(pwd)/zap-report:/zap/wrk/:rw" \
             -v "$(pwd)/.zap/rules.tsv:/zap/rules.tsv:ro" \
             ghcr.io/zaproxy/zaproxy:stable \
-            zap-baseline.py -t http://localhost:8000 \
+            zap-baseline.py -t http://127.0.0.1:8000 \
               -r zap-report.html -J zap-report.json \
               -c /zap/rules.tsv -I
 
