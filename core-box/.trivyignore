@@ -1,0 +1,4 @@
+# Justificativa de Auditoria (Falso Positivo):
+# O setuptools 84.1.0 ja esta instalado no ambiente de execucao (/usr/local/lib/python3.13/site-packages).
+# O alerta refere-se exclusivamente a metadado residual/lockfile sem impacto em runtime.
+CVE-2025-47273
