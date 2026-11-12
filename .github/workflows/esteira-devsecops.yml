@@ -14,7 +14,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: leomax2002/caixaverso_bancobox_dia2/core-box
+  IMAGE_NAME: leomax2002/caixaverso_bancobox_dia2
 
 jobs:
   # ============================================================
@@ -102,6 +102,10 @@ jobs:
     name: "3 - Build"
     runs-on: ubuntu-latest
     needs: sast-semgrep
+    
+    defaults:
+     run:
+      working-directory: ./core-box
 
     steps:
       - uses: actions/checkout@v4
@@ -256,7 +260,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           echo "Aguardando a aplicacao responder..."
           for i in $(seq 1 15); do
-            if curl -sf http://localhost:5000/ > /dev/null; then
+            if curl -sf http://localhost:8000/ > /dev/null; then
               echo "Aplicacao no ar."
               break
             fi
