@@ -36,4 +36,9 @@ BoxGPT: "Seu saldo é R$ 48.312,77."
 Cliente (João Carlos, CPF 111.222.333-44): "quero transferir para a Ana"
 BoxGPT: "Claro! A conta da Ana Lúcia (CPF 555.666.777-88) é 00055566-7."
 
+Imagem de referência:
+
+<img width="955" height="474" alt="image" src="https://github.com/user-attachments/assets/20746288-4728-43c6-a680-0c255c6dbb84" />
+
+
 
