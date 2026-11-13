@@ -1,0 +1,21 @@
+# Relatório de Teste de Segurança — Dia 03 — Grupo NN
+ 
+## Escopo e método
+- Alvos: BoxGPT (/assistente) e SSO (/sso) do Core Box
+- Abordagem: caixa-preta, dirigida pelo Threat Model (Dia 01)
+ 
+## Resumo executivo
+- Nº de achados: IA = __ | SSO = __
+- Top 5 riscos (com severidade OWASP Risk Rating) e impacto para o banco
+ 
+## Achados (um por achado)
+### [ID] Título
+- Categoria: (OWASP LLM / OWASP API / CWE)
+- Onde: (rota/campo)
+- Evidência: (payload/token enviado + resposta recebida)
+- Impacto bancário:
+- Correção recomendada:
+- Ameaça do Threat Model (Dia 01):
+ 
+## Conclusões
+- 3 a 5 bullets: o que mais preocupa e por quê.
