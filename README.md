@@ -1,0 +1,3 @@
+# Informações complementares
+## Tokens:
+Token de acesso (Maria): eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwicGVyZmlsIjoiY2xpZW50ZSIsImlzcyI6ImNvcmUtYm94IiwiYXVkIjoiYm94LWNsaWVudGVzIiwiaWF0IjoxNzk0NTgyNDI2LCJleHAiOjE3OTQ1ODQyMjZ9.C_zNId2o2PLijAvvGq_J7yQfmXFJ6ekrSSmp4QjWc
