@@ -9,13 +9,61 @@
 - Top 5 riscos (com severidade OWASP Risk Rating) e impacto para o banco
  
 ## Achados (um por achado)
-### [ID] Título
-- Categoria: (OWASP LLM / OWASP API / CWE)
-- Onde: (rota/campo)
-- Evidência: (payload/token enviado + resposta recebida)
-- Impacto bancário:
-- Correção recomendada:
-- Ameaça do Threat Model (Dia 01):
- 
+### [ID] SSO-01
+- Categoria: CWE-328
+- Onde: Token
+- Evidência: Criptografia com HS256 ao invés de RS256 (Imagem do Token ao final)
+- Impacto bancário: Maior facilidade para exposição de tokens e sequestros de sessão, resultando em possíveis perdas monetárias e de confiança
+- Correção recomendada: Utilizar  o RS256
+- Ameaça do Threat Model (Dia 01): TM-08
+
+### [ID] SSO-02
+- Categoria: CWE-613
+- Onde: Token
+- Evidência: Validade de Token extensa (Imagem do Token ao final)
+- Impacto bancário: Maior duração de um ataque de sequestro de sessão, resultando em possíveis perdas monetárias e de confiança
+- Correção recomendada: Diminuir o período de expiração, ou definir a expiração assim que for utilizado
+- Ameaça do Threat Model (Dia 01): TM-08
+
+### [ID] SSO-03
+- Categoria: CWE-287
+- Onde: Token
+- Evidência: Falta de verificação de e-mail: "email_verified": false (Imagem do Token ao final)
+- Impacto bancário: Autenticação sem validação de e-mail facilita a ação de agentes maliciosos que tentarem utilizar credenciais roubadas, resultando em perdas financeiras e de reputação ao banco.
+- Correção recomendada: Adicionar verificação de e-mail: "email_verified": true
+- Ameaça do Threat Model (Dia 01): TM-08
+
+### [ID] SSO-04
+- Categoria: CWE-352
+- Onde: SSO/Requisições HTTP para autenticação
+- Evidência: Não foram observados state, nonce, code_challenge ou code_challenge_method (Imagem do Token ao final)
+- Impacto bancário: Possibilita ataques de CSRF, no qual um site maliciosos pode forjar ações em nome de uma vítima autenticada. Isso pode implicar em prejuízos financeiros às vítimas e de reputação ao banco.
+- Correção recomendada: Gerar e validar state e nonce por tentativa; adotar PKCE S256; vincular os valores à sessão; rejeitar callback ausente, divergente ou reutilizado.
+- Ameaça do Threat Model (Dia 01): TM-08
+
+### [ID] SSO-05
+- Categoria: OWASP ASVS V3 / CWE-200
+- Onde: Payload com exposição excessiva do JWT
+- Evidência: O payload exibiu CPF, conta, agência, saldo, limite PIX, senha_hash, endereço, telefone e e-mail. O inspetor informa que não valida a assinatura. (Imagem do Token ao final)
+- Impacto bancário: Em caso de exposição do Token, seu conteúdo pode ser lido sem a chave de assinatura, comprometendo dados pessoais, bancários e de autenticação
+- Correção recomendada: Aplicar minimização de claims no IdP; remover saldo, limite PIX, senha_hash, endereço, telefone e demais dados não essenciais; nunca transportar hash de senha em JWT.
+- Ameaça do Threat Model (Dia 01): TM-10
+
+### [ID] SSO-06
+- Categoria: OAuth 2.0 / OIDC
+- Onde: Fluxo do SSO via OIDC
+- Evidência: Uso aparente de fluxo implícito OpenIDConnect. A requisição exibida utilizou reponse_type=token id_token
+- Impacto bancário: Tokens podem ser entregues pelo navegador, aumentando a exposição em histórico, fragmentos, extensões e logs, conforme a implementação
+- Correção recomendada: Migrar para Authorization Code Flow com PKCE; usar response_type=code e code_challenge_method=S256; não retornar access token diretamente ao navegador.
+- Ameaça do Threat Model (Dia 01): TM-08
+
+### [ID] SSO-07
+- Categoria: CWE-200
+- Onde: Token JWT
+- Evidência: Exposição de informações internas de infraestrutura no JWT. O payload apresentou db_host=10.0.2.9 e reset_link interno.
+- Impacto bancário: Facilita reconhecimento da arquitetura, identificação de ativos internos e preparação de ataques direcionados, que podem resultar em perdas financeiras graves à instituição
+- Correção recomendada: Remover db_host, links internos e metadados operacionais dos claims; manter no token apenas identificadores necessários à autenticação e autorização.
+- Ameaça do Threat Model (Dia 01): TM-10
+
 ## Conclusões
 - 3 a 5 bullets: o que mais preocupa e por quê.
