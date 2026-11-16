@@ -7,6 +7,11 @@
 ## Resumo executivo
 - Nº de achados: IA = 07 | SSO = 08
 - Top 5 riscos (com severidade OWASP Risk Rating) e impacto para o banco
+  1. SSO-08: Crítico (Impacto x Probabilidade = 71,19). Impacto para o banco: sequestro de conta, fraude e acesso não autorizados;
+  2. AI-02: Crítico (Impacto x Probabilidade = 66,02). Impacto para o banco: escalação de privilégios e degradação do comportamento do agente;
+  3. AI-03: Crítico (Impacto x Probabilidade = 66,00). Impacto para o banco: Exposição de informações privilegiadas do banco, resultando em acesso ou execução de operações não autorizadas;
+  4. AI-05: Alto (Impacto x Probabilidade = 47,00). Impacto para o banco: Exposição de dados sensíveis dos clientes;
+  5. AI-04: Alto (Impacto x Probabilidade = 46,00). Impacto para o banco: Exposição de dados sensíveis dos clientes.
  
 ## Achados (um por achado)
 ### [ID] SSO-01
